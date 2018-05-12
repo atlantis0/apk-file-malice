@@ -9,20 +9,16 @@ LABEL malice.plugin.docker.engine="*"
 
 
 # FOR JAVA
-ENV JAVA_HOME       /usr/lib/jvm/java-8-oracle
-ENV LANG            en_US.UTF-8
-ENV LC_ALL          en_US.UTF-8
 
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends locales && \
-  locale-gen en_US.UTF-8 && \
-  apt-get --purge remove openjdk* && \
-  echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | debconf-set-selections && \
-  echo "deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main" > /etc/apt/sources.list.d/webupd8team-java-trusty.list && \
-  apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EEA14886 && \
-  apt-get update && \
-  apt-get install -y --no-install-recommends oracle-java8-installer oracle-java8-set-default && \
-  apt-get clean all
+RUN apt-get update \
+    && apt-get -y install openjdk-9-jre \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME /usr/lib/jvm/java-9-openjdk-amd64
+ENV PATH $JAVA_HOME/bin:$PATH
+
+#############################
+# END JAVA
 
 
 # Create a malice user and group first so the IDs get set the same way, even as
@@ -39,7 +35,7 @@ RUN set -x \
   && wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch" \
   && wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc" \
   && export GNUPGHOME="$(mktemp -d)" \
-  && gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 \
+  && gpg --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 \
   && gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu \
   && rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc \
   && chmod +x /usr/local/bin/gosu \
@@ -97,7 +93,7 @@ RUN buildDeps='ca-certificates \
 ENV GOLANG_VERSION 1.9.2
 ENV GOLANG_DOWNLOAD_SHA256 de874549d9a8d8d8062be05808509c09a88a248e77ec14eb77453530829ac02b
 
-COPY . /Users/sirack/go/src/github.com/malice-plugins/p-apkfile
+COPY . /home/sirackh/gopath/src/github.com/atlantis0/apk-file-malice
 RUN buildDeps='ca-certificates \
                build-essential \
                mercurial \
@@ -116,8 +112,9 @@ RUN buildDeps='ca-certificates \
   && tar -C /usr/local -xzf /tmp/golang.tar.gz \
   && export PATH=$PATH:/usr/local/go/bin \
   && echo "Building info Go binary..." \
-  && cd /Users/sirack/go/src/github.com/malice-plugins/p-apkfile \
+  && cd /home/sirackh/gopath/src/github.com/atlantis0/apk-file-malice \
   && export GOPATH=/go \
+  && export GOBIN=$GOPATH/bin \
   && go version \
   && go get \
   && go build -ldflags "-X main.Version=$(cat VERSION) -X main.BuildTime=$(date -u +%Y%m%d)" -o /bin/info \
